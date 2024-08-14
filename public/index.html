@@ -1,0 +1,74 @@
+<!-- index.html -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Public Audio Database</title>
+</head>
+<body>
+  <p>Enter the new title for the audio file's folder:</p>
+  <input
+    type="text"
+    id="audioTitle"
+    placeholder="Enter new folder name"
+  />
+  <p>Youtube: Paste a YouTube video URL below:</p>
+  <input
+    type="text"
+    id="videoUrl"
+    placeholder="Enter YouTube URL"
+  />
+  <button onclick="convertVideo()">Convert to MP3</button>
+  <div id="result"></div>
+
+  <div id="conversion-status">no activity yet...</div>
+  <div id="audio-link"></div>
+  
+  <script>
+    let socket;
+    const statusDiv = document.getElementById('conversion-status');
+    const linkDiv = document.getElementById('audio-link');
+
+
+    function initSocket() {
+      // Use the correct WebSocket URL based on your server setup
+      socket = new WebSocket('wss://22625d02-cb06-4611-8b6f-dff4a03c8744-00-uqwlhj3i2mrw.worf.replit.dev');
+
+      socket.onmessage = (event) => {
+        var audioData = event.data;
+        if (typeof audioData === 'string') {
+          var response = JSON.parse(audioData);
+          if (response.success) {
+            statusDiv.textContent = 'Conversion successful';
+            clonedLinkDiv = linkDiv.cloneNode(true);
+            clonedLinkDiv.innerHTML = `<a href="${response.link}" target="_blank">${response.text_content}</a> <audio controls src=${response.link}></audio>`;
+            linkDiv.parentNode.insertBefore(clonedLinkDiv, linkDiv.nextSibling);
+          } else if (response.error) {
+            statusDiv.textContent = `Error: ${response.error}`;
+            linkDiv.innerHTML = '';
+          }
+        }
+      };
+    }
+
+    function convertVideo() {
+      statusDiv.textContent = 'Converting...';
+      if (!socket || socket.readyState !== WebSocket.OPEN) {
+        initSocket();
+      }
+
+      const videoUrl = document.getElementById('videoUrl').value;
+      const audioTitle = document.getElementById('audioTitle').value;
+      if (videoUrl && audioTitle) {
+        var data = { url: videoUrl, title: audioTitle };
+        socket.send(JSON.stringify(data));
+      }
+    }
+
+    // Initialize the socket connection on page load
+    document.addEventListener('DOMContentLoaded', initSocket);
+  </script>
+</body>
+</html>
